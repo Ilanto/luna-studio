@@ -184,10 +184,15 @@ export const ResultEditor = ({ open, resultId, prefill, onClose }: Props) => {
 
   return (
     <>
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="fixed inset-0 animate-fade-in bg-black/65 backdrop-blur-md" onClick={onClose} />
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto animate-fade-in bg-black/65 backdrop-blur-md"
+      onClick={onClose}
+    >
       <div className="flex min-h-full items-center justify-center p-4">
-      <div className="card-raised relative z-10 my-4 w-full max-w-3xl animate-scale-in overflow-hidden">
+      <div
+        className="card-raised relative z-10 my-4 w-full max-w-3xl animate-scale-in overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="pointer-events-none absolute -right-20 -top-20 h-44 w-44 rounded-full bg-wine-500/25 blur-3xl" />
         <div className="pointer-events-none absolute -left-16 bottom-0 h-40 w-40 rounded-full bg-plum-400/20 blur-3xl" />
 
@@ -540,7 +545,7 @@ export const ResultEditor = ({ open, resultId, prefill, onClose }: Props) => {
           </div>
         </div>
       </div>
-      </div>
+    </div>
     </div>
     <ConfirmDialog
       open={confirmDel}
