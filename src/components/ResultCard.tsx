@@ -1,6 +1,6 @@
 import type { MouseEvent } from "react";
 import { Crown, Expand, Grid2X2, Pencil, Star, Trash2, Video } from "lucide-react";
-import type { ResultEntry } from "../types";
+import type { ResultEntry, Variation } from "../types";
 import { ResultThumb } from "./ResultThumb";
 import { RatingBar } from "./RatingBar";
 import { formatRelative } from "../utils/dates";
@@ -32,6 +32,7 @@ export const ResultCard = ({
   onDelete,
   onToggleFavorite,
 }: Props) => {
+  const hasRatings = result.variations.some((v) => v.overall > 0);
   const stop = (cb: () => void) => (e: MouseEvent) => {
     e.stopPropagation();
     cb();
@@ -44,10 +45,7 @@ export const ResultCard = ({
     density === "compact" ? "text-[14px]" : density === "large" ? "text-[18px]" : "text-[16px]";
 
   const winner = result.resultType === "grid" ? result.variations.find((v) => v.isWinner) : undefined;
-  const gridAvg =
-    result.resultType === "grid" && result.variations.length > 0
-      ? result.variations.reduce((s, v) => s + v.overall, 0) / result.variations.length
-      : null;
+
 
   return (
     <article
@@ -146,8 +144,8 @@ export const ResultCard = ({
               )}
             </>
           )}
-          {gridAvg !== null && density !== "compact" && (
-            <RatingBar label="Grid ort." value={Math.round(gridAvg * 10) / 10} tone="cream" />
+          {result.resultType === "grid" && result.variations.length > 0 && density !== "compact" && hasRatings && (
+            <VariationSparkline variations={result.variations} />
           )}
         </div>
 
@@ -175,5 +173,47 @@ export const ResultCard = ({
         </div>
       </div>
     </article>
+  );
+};
+
+const MAX_H = 24;
+
+const VariationSparkline = ({ variations }: { variations: Variation[] }) => {
+  const maxScore = Math.max(...variations.map((v) => v.overall), 1);
+  return (
+    <div className="rounded-xl border border-white/[0.05] bg-ink-950/30 px-2.5 py-2">
+      <div className="mb-1.5 text-[9px] uppercase tracking-[0.18em] text-ink-600">varyasyon karşılaştırma</div>
+      <div className="flex items-end gap-2">
+        {variations.map((v) => {
+          const h = Math.max(3, Math.round((v.overall / maxScore) * MAX_H));
+          return (
+            <div key={v.id} className="flex flex-1 flex-col items-center gap-0.5">
+              {v.overall > 0 && (
+                <span className={cx("text-[9px] font-mono leading-none", v.isWinner ? "text-cream-300" : "text-ink-500")}>
+                  {v.overall}
+                </span>
+              )}
+              <div
+                style={{ height: `${h}px` }}
+                className={cx(
+                  "w-full rounded-[3px] transition-all duration-300",
+                  v.isWinner
+                    ? "bg-gradient-to-t from-cream-500/80 to-cream-300/90 shadow-[0_0_8px_rgba(212,180,131,0.35)]"
+                    : v.overall > 0
+                    ? "bg-ink-600"
+                    : "bg-ink-800/60"
+                )}
+              />
+              <span className={cx(
+                "text-[9px] uppercase tracking-[0.1em] leading-none",
+                v.isWinner ? "text-cream-400/90" : "text-ink-600"
+              )}>
+                {v.isWinner ? <Crown size={8} className="fill-cream-400 text-cream-400" /> : v.label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 };
