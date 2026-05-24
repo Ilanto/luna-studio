@@ -1,5 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Crown, Grid2X2, ImageIcon, ImageUp, Save, Star, Trash2, Video, X } from "lucide-react";
+import { Crown, Grid2X2, GripVertical, ImageIcon, ImageUp, Save, Star, Trash2, Video, X } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useStudio } from "../hooks/useStudio";
 import { useToast } from "../hooks/useToast";
 import { Stars } from "./Stars";
@@ -69,6 +84,17 @@ export const ResultEditor = ({ open, resultId, prefill, onClose }: Props) => {
   );
   const [confirmDel, setConfirmDel] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+
+  const handleVariationDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIdx = draft.variations.findIndex((v) => v.id === active.id);
+    const newIdx = draft.variations.findIndex((v) => v.id === over.id);
+    if (oldIdx < 0 || newIdx < 0) return;
+    set("variations", arrayMove(draft.variations, oldIdx, newIdx));
+  };
   const [imgInfo, setImgInfo] = useState<{ sizeKb: number; w: number; h: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -418,30 +444,41 @@ export const ResultEditor = ({ open, resultId, prefill, onClose }: Props) => {
                       placeholder="Genel olarak bu grid'de ne fark ettin?"
                     />
                   </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {draft.variations.map((v, idx) => (
-                      <VariationCard
-                        key={v.id}
-                        v={v}
-                        index={idx}
-                        imageUrl={draft.imageUrl}
-                        count={draft.variations.length}
-                        onChange={(next) =>
-                          set("variations", draft.variations.map((x) => (x.id === v.id ? next : x)))
-                        }
-                        onWinner={() =>
-                          set(
-                            "variations",
-                            draft.variations.map((x) =>
-                              x.id === v.id
-                                ? { ...x, isWinner: !x.isWinner }
-                                : { ...x, isWinner: false }
-                            )
-                          )
-                        }
-                      />
-                    ))}
-                  </div>
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleVariationDragEnd}
+                  >
+                    <SortableContext
+                      items={draft.variations.map((v) => v.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="space-y-3">
+                        {draft.variations.map((v, idx) => (
+                          <SortableVariationCard
+                            key={v.id}
+                            v={v}
+                            index={idx}
+                            imageUrl={draft.imageUrl}
+                            count={draft.variations.length}
+                            onChange={(next) =>
+                              set("variations", draft.variations.map((x) => (x.id === v.id ? next : x)))
+                            }
+                            onWinner={() =>
+                              set(
+                                "variations",
+                                draft.variations.map((x) =>
+                                  x.id === v.id
+                                    ? { ...x, isWinner: !x.isWinner }
+                                    : { ...x, isWinner: false }
+                                )
+                              )
+                            }
+                          />
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
                 </div>
               </details>
             )}
@@ -522,21 +559,45 @@ const RatingRow = ({ label, value, onChange }: { label: string; value: number; o
   </div>
 );
 
-const VariationCard = ({
-  v,
-  index,
-  imageUrl,
-  count,
-  onChange,
-  onWinner,
-}: {
+type VariationCardProps = {
   v: Variation;
   index: number;
   imageUrl: string;
   count: number;
   onChange: (next: Variation) => void;
   onWinner: () => void;
-}) => {
+};
+
+const SortableVariationCard = (props: VariationCardProps) => {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
+    useSortable({ id: props.v.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.45 : 1,
+    zIndex: isDragging ? 20 : "auto",
+  } as React.CSSProperties;
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-stretch gap-2">
+      <button
+        ref={setActivatorNodeRef}
+        {...attributes}
+        {...listeners}
+        type="button"
+        aria-label="Sürükleyerek sırala"
+        title="Sürükleyerek sırala"
+        className="flex cursor-grab items-center rounded-xl border border-white/[0.05] bg-ink-900/30 px-1.5 text-ink-600 transition hover:text-ink-400 active:cursor-grabbing"
+      >
+        <GripVertical size={13} />
+      </button>
+      <div className="flex-1">
+        <VariationCard {...props} />
+      </div>
+    </div>
+  );
+};
+
+const VariationCard = ({ v, index, imageUrl, count, onChange, onWinner }: VariationCardProps) => {
   const upd = <K extends keyof Variation>(k: K, val: Variation[K]) => onChange({ ...v, [k]: val });
   return (
     <div
