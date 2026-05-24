@@ -1,20 +1,28 @@
+import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { Copy, ImagePlus, Pencil, Star, Trash2 } from "lucide-react";
+import { Copy, Crown, Grid2X2, ImagePlus, Pencil, Star, Trash2 } from "lucide-react";
 import type { Prompt } from "../types";
 import { Stars } from "./Stars";
 import { formatRelative } from "../utils/dates";
 import { cx } from "../utils/cx";
 
+interface PromptStats {
+  total: number;
+  grids: number;
+  winners: number;
+  avgOverall: number;
+}
+
 interface Props {
   prompt: Prompt;
-  resultCount?: number;
+  stats?: PromptStats;
   onCopy: () => void;
   onDelete: () => void;
   onToggleFavorite: () => void;
   onAddResult?: () => void;
 }
 
-export const PromptCard = ({ prompt, resultCount = 0, onCopy, onDelete, onToggleFavorite, onAddResult }: Props) => {
+export const PromptCard = ({ prompt, stats, onCopy, onDelete, onToggleFavorite, onAddResult }: Props) => {
   return (
     <article className="card card-hover group flex flex-col gap-4 p-5">
       <header className="flex items-start justify-between gap-3">
@@ -60,18 +68,25 @@ export const PromptCard = ({ prompt, resultCount = 0, onCopy, onDelete, onToggle
 
       <footer className="flex items-end justify-between gap-3 border-t border-white/[0.04] pt-4">
         <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-2">
-            <Stars value={prompt.rating} readOnly size={13} />
-            {resultCount > 0 && (
-              <Link
-                to={`/results?prompt=${prompt.id}`}
-                className="inline-flex items-center gap-1 rounded-full border border-cream-400/25 bg-cream-400/10 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.14em] text-cream-400 transition hover:bg-cream-400/15"
-                title={`${resultCount} bağlı sonuç`}
-              >
-                <ImagePlus size={10} /> {resultCount}
-              </Link>
-            )}
-          </div>
+          <Stars value={prompt.rating} readOnly size={13} />
+          {stats && stats.total > 0 ? (
+            <Link
+              to={`/results?prompt=${prompt.id}`}
+              className="group/stats flex flex-wrap items-center gap-x-2 gap-y-0.5 transition hover:opacity-80"
+              title="Bağlı sonuçlara git"
+            >
+              <StatPill icon={<ImagePlus size={9} />} label={`${stats.total} sonuç`} />
+              {stats.grids > 0 && <StatPill icon={<Grid2X2 size={9} />} label={`${stats.grids} grid`} />}
+              {stats.winners > 0 && (
+                <StatPill icon={<Crown size={9} className="fill-cream-400 text-cream-400" />} label={`${stats.winners} kazanan`} tone="cream" />
+              )}
+              {stats.avgOverall > 0 && (
+                <StatPill label={`ort ${stats.avgOverall.toFixed(1)}★`} tone="wine" />
+              )}
+            </Link>
+          ) : (
+            <div className="text-[10px] uppercase tracking-[0.18em] text-ink-600">henüz sonuç yok</div>
+          )}
           <div className="text-[10.5px] uppercase tracking-[0.16em] text-ink-500">
             {formatRelative(prompt.updatedAt)}
           </div>
@@ -106,3 +121,23 @@ export const PromptCard = ({ prompt, resultCount = 0, onCopy, onDelete, onToggle
     </article>
   );
 };
+
+const StatPill = ({
+  icon,
+  label,
+  tone,
+}: {
+  icon?: ReactNode;
+  label: string;
+  tone?: "cream" | "wine";
+}) => (
+  <span
+    className={cx(
+      "inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em]",
+      tone === "cream" ? "text-cream-400/80" : tone === "wine" ? "text-wine-300/80" : "text-ink-500"
+    )}
+  >
+    {icon}
+    {label}
+  </span>
+);

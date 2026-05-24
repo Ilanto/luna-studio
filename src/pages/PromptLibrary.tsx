@@ -28,10 +28,19 @@ export const PromptLibrary = () => {
     promptId: null,
   });
 
-  const resultCountByPrompt = useMemo(() => {
-    const out: Record<string, number> = {};
+  const statsByPrompt = useMemo(() => {
+    const acc: Record<string, { total: number; grids: number; winners: number; sumOverall: number }> = {};
     for (const r of results) {
-      if (r.promptId) out[r.promptId] = (out[r.promptId] ?? 0) + 1;
+      if (!r.promptId) continue;
+      if (!acc[r.promptId]) acc[r.promptId] = { total: 0, grids: 0, winners: 0, sumOverall: 0 };
+      acc[r.promptId].total += 1;
+      if (r.resultType === "grid") acc[r.promptId].grids += 1;
+      if (r.variations.some((v) => v.isWinner)) acc[r.promptId].winners += 1;
+      acc[r.promptId].sumOverall += r.overall;
+    }
+    const out: Record<string, { total: number; grids: number; winners: number; avgOverall: number }> = {};
+    for (const [id, s] of Object.entries(acc)) {
+      out[id] = { ...s, avgOverall: s.total > 0 ? s.sumOverall / s.total : 0 };
     }
     return out;
   }, [results]);
@@ -173,7 +182,7 @@ export const PromptLibrary = () => {
               <PromptCard
                 key={p.id}
                 prompt={p}
-                resultCount={resultCountByPrompt[p.id] ?? 0}
+                stats={statsByPrompt[p.id]}
                 onCopy={() => handleCopy(p.body)}
                 onToggleFavorite={() => toggleFavorite(p.id)}
                 onDelete={() => setConfirmId(p.id)}
