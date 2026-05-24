@@ -32,7 +32,7 @@ const readDensity = (): Density => {
 };
 
 export const ResultGallery = () => {
-  const { results, prompts, characters, removeResult, toggleResultFavorite } = useStudio();
+  const { results, prompts, characters, removeResult, toggleResultFavorite, updateResult } = useStudio();
   const { push } = useToast();
   const [searchParams] = useSearchParams();
 
@@ -138,6 +138,46 @@ export const ResultGallery = () => {
       prefill: { promptId: selected.promptId, characterId: selected.characterId },
     });
   };
+
+  useEffect(() => {
+    if (!selectedId || lightbox.open || editor.open || !!confirmId) return;
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement;
+      if (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const n = parseInt(e.key);
+      if (n >= 1 && n <= 5) {
+        updateResult(selectedId, { overall: n });
+        push(`Genel puan → ${n}★`);
+        return;
+      }
+      switch (e.key.toLowerCase()) {
+        case "f":
+          toggleResultFavorite(selectedId);
+          push(selected?.favorite ? "Favoriden çıkarıldı" : "Favorilere eklendi");
+          break;
+        case "e":
+          setEditor({ open: true, id: selectedId });
+          break;
+        case "arrowleft":
+        case "arrowup": {
+          e.preventDefault();
+          const idx = filtered.findIndex((r) => r.id === selectedId);
+          if (idx > 0) setSelectedId(filtered[idx - 1].id);
+          break;
+        }
+        case "arrowright":
+        case "arrowdown": {
+          e.preventDefault();
+          const idx = filtered.findIndex((r) => r.id === selectedId);
+          if (idx < filtered.length - 1) setSelectedId(filtered[idx + 1].id);
+          break;
+        }
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectedId, lightbox.open, editor.open, confirmId, filtered, selected, updateResult, toggleResultFavorite, push]);
 
   const gridStyle = {
     gridTemplateColumns: `repeat(auto-fill, minmax(min(100%, ${DENSITY_GRID[density].min}), 1fr))`,
@@ -304,7 +344,20 @@ export const ResultGallery = () => {
         </div>
 
         <aside className="hidden lg:block">
-          <div className="sticky top-6">
+          <div className="sticky top-6 space-y-2">
+            {selectedId && !lightbox.open && !editor.open && (
+              <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 px-1 py-1">
+                {(["1-5", "F", "E", "←→"] as const).map((key, i) => {
+                  const labels = ["puan ver", "favori", "düzenle", "gezin"];
+                  return (
+                    <span key={key} className="inline-flex items-center gap-1 text-[10px] tracking-[0.12em] text-ink-600">
+                      <kbd className="rounded border border-white/[0.07] bg-ink-900/60 px-1 py-0.5 font-mono text-[9px] text-ink-400">{key}</kbd>
+                      {labels[i]}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
             <ResultDetailPanel
               result={selected}
               prompt={selected?.promptId ? promptLookup[selected.promptId] : undefined}
@@ -319,6 +372,7 @@ export const ResultGallery = () => {
               onToggleFavorite={() => selected && toggleResultFavorite(selected.id)}
             />
           </div>
+
         </aside>
       </div>
 

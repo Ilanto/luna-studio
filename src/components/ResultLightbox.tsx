@@ -33,10 +33,9 @@ export const ResultLightbox = ({
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-        return;
-      }
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "Escape") { onClose(); return; }
+      if ((e.key === "e" || e.key === "E") && onEdit) { onEdit(); return; }
       if (variationIndex === null) return;
       if (e.key === "ArrowLeft" && onPrevVariation) onPrevVariation();
       if (e.key === "ArrowRight" && onNextVariation) onNextVariation();
