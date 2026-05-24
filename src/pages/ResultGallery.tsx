@@ -11,7 +11,7 @@ import { ResultLightbox } from "../components/ResultLightbox";
 import { ViewDensityToggle, type Density } from "../components/ViewDensityToggle";
 import { EmptyState } from "../components/EmptyState";
 import { ConfirmDialog } from "../components/ConfirmDialog";
-import { AI_MODELS, RESULT_TYPES, RESULT_TYPE_LABEL, type AIModel, type ResultType } from "../types";
+import { AI_MODELS, RESULT_STATUSES, RESULT_STATUS_LABEL, RESULT_TYPES, RESULT_TYPE_LABEL, type AIModel, type ResultStatus, type ResultType } from "../types";
 
 type SortKey = "date" | "overall" | "face" | "title";
 
@@ -33,6 +33,7 @@ const readDensity = (): Density => {
 
 export const ResultGallery = () => {
   const { results, prompts, characters, removeResult, toggleResultFavorite, updateResult } = useStudio();
+
   const { push } = useToast();
   const [searchParams] = useSearchParams();
 
@@ -40,6 +41,7 @@ export const ResultGallery = () => {
   const [promptFilter, setPromptFilter] = useState<string>(searchParams.get("prompt") ?? "all");
   const [modelFilter, setModelFilter] = useState<AIModel | "all">("all");
   const [typeFilter, setTypeFilter] = useState<ResultType | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<ResultStatus | "all">("all");
   const [favOnly, setFavOnly] = useState(false);
   const [winnersOnly, setWinnersOnly] = useState(false);
   const [sort, setSort] = useState<SortKey>("date");
@@ -74,6 +76,7 @@ export const ResultGallery = () => {
     if (promptFilter !== "all") list = list.filter((r) => r.promptId === promptFilter);
     if (modelFilter !== "all") list = list.filter((r) => r.model === modelFilter);
     if (typeFilter !== "all") list = list.filter((r) => r.resultType === typeFilter);
+    if (statusFilter !== "all") list = list.filter((r) => r.status === statusFilter);
     if (winnersOnly) {
       list = list.filter((r) => r.resultType === "grid" && r.variations.some((v) => v.isWinner));
     }
@@ -87,7 +90,7 @@ export const ResultGallery = () => {
       }
     });
     return list;
-  }, [results, favOnly, characterFilter, promptFilter, modelFilter, typeFilter, winnersOnly, sort]);
+  }, [results, favOnly, characterFilter, promptFilter, modelFilter, typeFilter, statusFilter, winnersOnly, sort]);
 
   useEffect(() => {
     if (filtered.length === 0) {
@@ -111,6 +114,7 @@ export const ResultGallery = () => {
     (promptFilter !== "all" ? 1 : 0) +
     (modelFilter !== "all" ? 1 : 0) +
     (typeFilter !== "all" ? 1 : 0) +
+    (statusFilter !== "all" ? 1 : 0) +
     (winnersOnly ? 1 : 0);
 
   const resetFilters = () => {
@@ -119,6 +123,7 @@ export const ResultGallery = () => {
     setPromptFilter("all");
     setModelFilter("all");
     setTypeFilter("all");
+    setStatusFilter("all");
     setWinnersOnly(false);
   };
 
@@ -224,6 +229,14 @@ export const ResultGallery = () => {
                 options={[
                   { value: "all", label: "tüm türler" },
                   ...RESULT_TYPES.map((t) => ({ value: t, label: RESULT_TYPE_LABEL[t].toLowerCase() })),
+                ]}
+              />
+              <FilterSelect
+                value={statusFilter}
+                onChange={(v) => setStatusFilter(v as ResultStatus | "all")}
+                options={[
+                  { value: "all", label: "tüm durumlar" },
+                  ...RESULT_STATUSES.map((s) => ({ value: s, label: RESULT_STATUS_LABEL[s].toLowerCase() })),
                 ]}
               />
               <button
@@ -336,6 +349,7 @@ export const ResultGallery = () => {
                     onEdit={() => setEditor({ open: true, id: r.id })}
                     onDelete={() => setConfirmId(r.id)}
                     onToggleFavorite={() => toggleResultFavorite(r.id)}
+                    onStatusChange={(next) => updateResult(r.id, { status: next })}
                   />
                 );
               })}

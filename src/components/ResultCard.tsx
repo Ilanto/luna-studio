@@ -1,6 +1,7 @@
 import type { MouseEvent } from "react";
-import { Crown, Expand, Grid2X2, Pencil, Star, Trash2, Video } from "lucide-react";
-import type { ResultEntry, Variation } from "../types";
+import { Bookmark, Crown, Expand, Grid2X2, Pencil, RotateCcw, Star, Trash2, Video, XCircle } from "lucide-react";
+import type { ResultEntry, ResultStatus, Variation } from "../types";
+import { RESULT_STATUS_LABEL } from "../types";
 import { ResultThumb } from "./ResultThumb";
 import { RatingBar } from "./RatingBar";
 import { formatRelative } from "../utils/dates";
@@ -18,6 +19,7 @@ interface Props {
   onEdit: () => void;
   onDelete: () => void;
   onToggleFavorite: () => void;
+  onStatusChange?: (next: ResultStatus | null) => void;
 }
 
 export const ResultCard = ({
@@ -31,6 +33,7 @@ export const ResultCard = ({
   onEdit,
   onDelete,
   onToggleFavorite,
+  onStatusChange,
 }: Props) => {
   const stop = (cb: () => void) => (e: MouseEvent) => {
     e.stopPropagation();
@@ -153,9 +156,22 @@ export const ResultCard = ({
         )}
 
         <div className="mt-auto flex items-center justify-between gap-3 border-t border-white/[0.05] pt-2.5">
-          <span className="text-[10px] uppercase tracking-[0.16em] text-ink-500">
-            {formatRelative(result.createdAt)}
-          </span>
+          <div className="flex items-center gap-1.5">
+            {onStatusChange && (
+              <div onClick={(e) => e.stopPropagation()}>
+                <StatusCycleButton
+                  status={result.status}
+                  onChange={onStatusChange}
+                />
+              </div>
+            )}
+            {!onStatusChange && result.status && (
+              <StatusBadge status={result.status} />
+            )}
+            <span className="text-[10px] uppercase tracking-[0.16em] text-ink-500">
+              {formatRelative(result.createdAt)}
+            </span>
+          </div>
           <div className="flex items-center gap-1 opacity-80 transition-opacity group-hover:opacity-100">
             <button onClick={stop(onEdit)} className="btn-ghost" aria-label="Düzenle" title="Düzenle">
               <Pencil size={14} strokeWidth={1.6} />
@@ -172,6 +188,58 @@ export const ResultCard = ({
         </div>
       </div>
     </article>
+  );
+};
+
+const STATUS_CYCLE: Array<ResultStatus | null> = [null, "referans", "revize", "iptal"];
+
+const STATUS_STYLES: Record<ResultStatus, string> = {
+  referans: "border-cream-400/40 bg-cream-400/10 text-cream-300",
+  revize:   "border-plum-300/40 bg-plum-500/15 text-plum-200",
+  iptal:    "border-red-400/30 bg-red-950/30 text-red-300",
+};
+const STATUS_ICONS: Record<ResultStatus, typeof Bookmark> = {
+  referans: Bookmark,
+  revize:   RotateCcw,
+  iptal:    XCircle,
+};
+
+export const StatusBadge = ({ status }: { status: ResultStatus }) => {
+  const Icon = STATUS_ICONS[status];
+  return (
+    <span className={cx("inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] uppercase tracking-[0.16em]", STATUS_STYLES[status])}>
+      <Icon size={9} strokeWidth={2} />
+      {RESULT_STATUS_LABEL[status]}
+    </span>
+  );
+};
+
+const StatusCycleButton = ({
+  status,
+  onChange,
+}: {
+  status: ResultStatus | null;
+  onChange: (next: ResultStatus | null) => void;
+}) => {
+  const cycleNext = () => {
+    const idx = STATUS_CYCLE.indexOf(status);
+    onChange(STATUS_CYCLE[(idx + 1) % STATUS_CYCLE.length]);
+  };
+  if (!status) {
+    return (
+      <button
+        onClick={cycleNext}
+        className="rounded-full border border-dashed border-ink-700 px-1.5 py-0.5 text-[9px] uppercase tracking-[0.14em] text-ink-600 transition hover:border-ink-500 hover:text-ink-400"
+        title="Durum ekle"
+      >
+        + durum
+      </button>
+    );
+  }
+  return (
+    <button onClick={cycleNext} title="Durumu değiştir (tıkla)">
+      <StatusBadge status={status} />
+    </button>
   );
 };
 

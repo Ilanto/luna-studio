@@ -22,12 +22,15 @@ import { ResultThumb } from "./ResultThumb";
 import { VariationThumb } from "./VariationThumb";
 import {
   AI_MODELS,
+  RESULT_STATUSES,
+  RESULT_STATUS_LABEL,
   RESULT_TYPES,
   RESULT_TYPE_LABEL,
   defaultVariations,
   type AIModel,
   type FitMode,
   type ResultEntry,
+  type ResultStatus,
   type ResultType,
   type Variation,
 } from "../types";
@@ -63,6 +66,7 @@ const blank = (preset?: Partial<ResultEntry>): Draft => ({
   notes: preset?.notes ?? "",
   issues: preset?.issues ?? "",
   favorite: preset?.favorite ?? false,
+  status: preset?.status ?? null,
 });
 
 const TYPE_ICONS: Record<ResultType, typeof ImageIcon> = {
@@ -526,6 +530,33 @@ export const ResultEditor = ({ open, resultId, prefill, onClose }: Props) => {
               />
               <span className="text-ink-200">{draft.favorite ? "Favoride" : "Favoriye ekle"}</span>
             </label>
+
+            <div>
+              <label className="label">Durum</label>
+              <div className="flex flex-wrap gap-1.5">
+                {([null, ...RESULT_STATUSES] as Array<ResultStatus | null>).map((s) => (
+                  <button
+                    key={s ?? "__none__"}
+                    type="button"
+                    onClick={() => set("status", s)}
+                    className={cx(
+                      "rounded-full border px-3 py-1.5 text-[12px] transition active:scale-[0.97]",
+                      draft.status === s
+                        ? s === null
+                          ? "border-ink-500/60 bg-ink-700/40 text-ink-100"
+                          : s === "referans"
+                          ? "border-cream-400/45 bg-cream-400/12 text-cream-300"
+                          : s === "revize"
+                          ? "border-plum-300/45 bg-plum-500/15 text-plum-200"
+                          : "border-red-400/35 bg-red-950/35 text-red-300"
+                        : "border-white/[0.06] bg-ink-900/40 text-ink-350 hover:text-ink-100 hover:border-white/[0.12]"
+                    )}
+                  >
+                    {s === null ? "— durumsuz —" : RESULT_STATUS_LABEL[s]}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
