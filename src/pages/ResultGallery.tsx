@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Crown, GalleryHorizontal, Plus, Star } from "lucide-react";
+import { Columns2, Crown, GalleryHorizontal, Plus, Star, X } from "lucide-react";
 import { useStudio } from "../hooks/useStudio";
 import { useToast } from "../hooks/useToast";
 import { ResultCard } from "../components/ResultCard";
@@ -8,6 +8,7 @@ import { WinnerCard } from "../components/WinnerCard";
 import { ResultEditor } from "../components/ResultEditor";
 import { ResultDetailPanel } from "../components/ResultDetailPanel";
 import { ResultLightbox } from "../components/ResultLightbox";
+import { CompareModal } from "../components/CompareModal";
 import { ViewDensityToggle, type Density } from "../components/ViewDensityToggle";
 import { EmptyState } from "../components/EmptyState";
 import { ConfirmDialog } from "../components/ConfirmDialog";
@@ -46,6 +47,25 @@ export const ResultGallery = () => {
   const [winnersOnly, setWinnersOnly] = useState(false);
   const [sort, setSort] = useState<SortKey>("date");
   const [density, setDensity] = useState<Density>(() => readDensity());
+
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [compareOpen, setCompareOpen] = useState(false);
+
+  const toggleCompareMode = () => {
+    setCompareMode((v) => {
+      if (v) setCompareIds([]);
+      return !v;
+    });
+  };
+
+  const toggleCompareId = (id: string) => {
+    setCompareIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= 2) return [prev[1], id];
+      return [...prev, id];
+    });
+  };
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<{ open: boolean; id: string | null; vIndex: number | null }>({
@@ -280,6 +300,17 @@ export const ResultGallery = () => {
                 <option value="face">Yüz puanı</option>
                 <option value="title">Başlık (A→Z)</option>
               </select>
+              <button
+                onClick={toggleCompareMode}
+                title="Karşılaştırma modu"
+                className={
+                  "chip flex items-center gap-1.5 transition " +
+                  (compareMode ? "!border-plum-400/50 !bg-plum-500/15 !text-plum-200" : "hover:!text-ink-100")
+                }
+              >
+                <Columns2 size={11} strokeWidth={1.6} />
+                karşılaştır
+              </button>
               <ViewDensityToggle value={density} onChange={setDensity} />
             </div>
           </div>
@@ -336,15 +367,17 @@ export const ResultGallery = () => {
                     />
                   );
                 }
+                const cIdx = compareIds.indexOf(r.id);
                 return (
                   <ResultCard
                     key={r.id}
                     result={r}
                     density={density}
-                    selected={r.id === selectedId}
+                    selected={!compareMode && r.id === selectedId}
+                    compareIndex={cIdx >= 0 ? ((cIdx + 1) as 1 | 2) : undefined}
                     promptTitle={r.promptId ? promptLookup[r.promptId]?.title : undefined}
                     characterName={r.characterId ? charLookup[r.characterId]?.name : undefined}
-                    onSelect={() => setSelectedId(r.id)}
+                    onSelect={compareMode ? () => toggleCompareId(r.id) : () => setSelectedId(r.id)}
                     onExpand={() => setLightbox({ open: true, id: r.id, vIndex: null })}
                     onEdit={() => setEditor({ open: true, id: r.id })}
                     onDelete={() => setConfirmId(r.id)}
@@ -431,6 +464,62 @@ export const ResultGallery = () => {
         danger
         onConfirm={confirmDelete}
         onCancel={() => setConfirmId(null)}
+      />
+
+      {compareMode && (
+        <div className="fixed bottom-0 inset-x-0 z-40 flex items-center justify-between gap-4 border-t border-plum-400/20 bg-ink-950/90 px-6 py-4 backdrop-blur-md">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              {[0, 1].map((i) => (
+                <div
+                  key={i}
+                  className={
+                    "grid h-7 w-7 place-items-center rounded-full border font-mono text-[11px] transition " +
+                    (i < compareIds.length
+                      ? "border-plum-400/50 bg-plum-500/20 text-plum-200"
+                      : "border-white/[0.08] bg-ink-900/40 text-ink-600")
+                  }
+                >
+                  {i + 1}
+                </div>
+              ))}
+            </div>
+            <span className="text-[11px] text-ink-400">
+              {compareIds.length === 0
+                ? "Karşılaştırmak için 2 sonuç seç"
+                : compareIds.length === 1
+                ? "Bir tane daha seç"
+                : "Hazır — karşılaştır!"}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {compareIds.length === 2 && (
+              <button
+                onClick={() => setCompareOpen(true)}
+                className="btn-primary"
+              >
+                <Columns2 size={14} /> Karşılaştır
+              </button>
+            )}
+            <button onClick={toggleCompareMode} className="btn-ghost" title="Karşılaştırma modunu kapat">
+              <X size={15} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      <CompareModal
+        open={compareOpen}
+        results={
+          compareIds.length === 2
+            ? ([results.find((r) => r.id === compareIds[0])!, results.find((r) => r.id === compareIds[1])!] as [typeof results[0], typeof results[0]])
+            : null
+        }
+        prompts={promptLookup}
+        characters={charLookup}
+        onClose={() => setCompareOpen(false)}
+        onEdit={(id) => { setCompareOpen(false); setEditor({ open: true, id }); }}
+        onExpand={(id) => { setCompareOpen(false); setLightbox({ open: true, id, vIndex: null }); }}
       />
     </div>
   );

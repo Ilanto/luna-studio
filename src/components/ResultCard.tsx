@@ -14,6 +14,7 @@ interface Props {
   characterName?: string;
   density?: Density;
   selected?: boolean;
+  compareIndex?: 1 | 2;
   onSelect: () => void;
   onExpand: () => void;
   onEdit: () => void;
@@ -28,6 +29,7 @@ export const ResultCard = ({
   characterName,
   density = "comfortable",
   selected = false,
+  compareIndex,
   onSelect,
   onExpand,
   onEdit,
@@ -54,9 +56,16 @@ export const ResultCard = ({
       onClick={onSelect}
       className={cx(
         "card card-hover group relative flex cursor-pointer flex-col overflow-hidden transition",
-        selected && "ring-2 ring-cream-400/45 ring-offset-2 ring-offset-ink-950 shadow-glow"
+        selected && "ring-2 ring-cream-400/45 ring-offset-2 ring-offset-ink-950 shadow-glow",
+        compareIndex && "ring-2 ring-plum-400/60 ring-offset-2 ring-offset-ink-950"
       )}
     >
+      {compareIndex && (
+        <span className="pointer-events-none absolute left-2 top-2 z-20 grid h-6 w-6 place-items-center rounded-full bg-plum-500/80 font-mono text-[11px] text-white shadow backdrop-blur-sm">
+          {compareIndex}
+        </span>
+      )}
+
       {result.favorite && (
         <span
           className="pointer-events-none absolute right-2 top-2 z-10 grid h-7 w-7 place-items-center rounded-full bg-ink-950/80 text-cream-400 shadow-[0_4px_18px_rgba(212,180,131,0.35)] backdrop-blur-md"
