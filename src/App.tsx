@@ -9,6 +9,7 @@ import { CharacterProfiles } from "./pages/CharacterProfiles";
 import { PromptBuilder } from "./pages/PromptBuilder";
 import { ResultGallery } from "./pages/ResultGallery";
 import { Settings } from "./pages/Settings";
+import { ModelStats } from "./pages/ModelStats";
 
 const WithTopbar = ({ children }: { children: React.ReactNode }) => (
   <div className="flex flex-1 flex-col">
@@ -39,6 +40,7 @@ export default function App() {
           <Route path="/characters" element={<WithTopbar><CharacterProfiles /></WithTopbar>} />
           <Route path="/builder" element={<WithTopbar><PromptBuilder /></WithTopbar>} />
           <Route path="/results" element={<WithTopbar><ResultGallery /></WithTopbar>} />
+          <Route path="/models" element={<WithTopbar><ModelStats /></WithTopbar>} />
           <Route path="/settings" element={<WithTopbar><Settings /></WithTopbar>} />
         </Routes>
       </main>

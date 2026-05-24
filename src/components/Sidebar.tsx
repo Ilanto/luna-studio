@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { GalleryHorizontal, LayoutDashboard, Library, PenLine, Settings, Users, Wand2 } from "lucide-react";
+import { BarChart3, GalleryHorizontal, LayoutDashboard, Library, PenLine, Settings, Users, Wand2 } from "lucide-react";
 import { cx } from "../utils/cx";
 import { useStudio } from "../hooks/useStudio";
 
@@ -10,6 +10,7 @@ const items = [
   { to: "/characters", label: "Karakterler", icon: Users, end: false, countKey: "characters" },
   { to: "/builder", label: "Prompt Builder", icon: Wand2, end: false, countKey: null },
   { to: "/results", label: "Galeri", icon: GalleryHorizontal, end: false, countKey: "results" },
+  { to: "/models", label: "Modeller", icon: BarChart3, end: false, countKey: null },
   { to: "/settings", label: "Ayarlar", icon: Settings, end: false, countKey: null },
 ] as const;
 
