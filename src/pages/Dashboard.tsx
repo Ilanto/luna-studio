@@ -1,14 +1,26 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, GalleryHorizontal, Library, ScanFace, Sparkles, Users } from "lucide-react";
 import { useStudio } from "../hooks/useStudio";
 import { StatCard } from "../components/StatCard";
 import { ResultThumb } from "../components/ResultThumb";
 import { RatingBar } from "../components/RatingBar";
+import { ResultLightbox } from "../components/ResultLightbox";
+import { ResultEditor } from "../components/ResultEditor";
 import { pickIdeaForToday } from "../data/ideas";
 import { formatRelative } from "../utils/dates";
 
 export const Dashboard = () => {
   const { prompts, characters, results } = useStudio();
+
+  const [lightbox, setLightbox] = useState<{ open: boolean; id: string | null; vIndex: number | null }>({
+    open: false, id: null, vIndex: null,
+  });
+  const [editor, setEditor] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
+
+  const openLightbox = (id: string) => setLightbox({ open: true, id, vIndex: null });
+  const closeLightbox = () => setLightbox({ open: false, id: null, vIndex: null });
+  const lightboxResult = lightbox.id ? results.find((r) => r.id === lightbox.id) ?? null : null;
   const favorites = prompts.filter((p) => p.favorite);
   const recent = [...prompts]
     .sort((a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt))
@@ -133,10 +145,10 @@ export const Dashboard = () => {
                 </div>
                 <div className="space-y-2">
                   {topResults.map((r) => (
-                    <Link
+                    <button
                       key={r.id}
-                      to={`/results?prompt=${r.promptId ?? "all"}`}
-                      className="group flex items-center gap-3 rounded-xl border border-white/[0.05] bg-ink-900/40 p-2.5 transition hover:border-cream-400/25 hover:bg-ink-850"
+                      onClick={() => openLightbox(r.id)}
+                      className="group flex w-full items-center gap-3 rounded-xl border border-white/[0.05] bg-ink-900/40 p-2.5 text-left transition hover:border-cream-400/25 hover:bg-ink-850"
                     >
                       <div className="h-14 w-12 shrink-0 overflow-hidden rounded-lg">
                         <ResultThumb src={r.imageUrl} alt={r.title} aspect="portrait" />
@@ -147,7 +159,7 @@ export const Dashboard = () => {
                           <RatingBar label="Genel" value={r.overall} tone="wine" />
                         </div>
                       </div>
-                    </Link>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -159,10 +171,10 @@ export const Dashboard = () => {
               </div>
               <div className="space-y-2">
                 {recentResults.map((r) => (
-                  <Link
+                  <button
                     key={r.id}
-                    to="/results"
-                    className="group flex items-center gap-3 rounded-xl border border-transparent px-2 py-2 transition hover:border-white/[0.05] hover:bg-ink-800/40"
+                    onClick={() => openLightbox(r.id)}
+                    className="group flex w-full items-center gap-3 rounded-xl border border-transparent px-2 py-2 text-left transition hover:border-white/[0.05] hover:bg-ink-800/40"
                   >
                     <div className="h-12 w-10 shrink-0 overflow-hidden rounded-lg">
                       <ResultThumb src={r.imageUrl} alt={r.title} aspect="portrait" />
@@ -173,7 +185,7 @@ export const Dashboard = () => {
                         {r.model} · {formatRelative(r.createdAt)}
                       </div>
                     </div>
-                  </Link>
+                  </button>
                 ))}
               </div>
             </div>
@@ -217,6 +229,36 @@ export const Dashboard = () => {
           )}
         </div>
       </section>
+      <ResultLightbox
+        open={lightbox.open}
+        result={lightboxResult}
+        variationIndex={lightbox.vIndex}
+        onClose={closeLightbox}
+        onShowWhole={() => setLightbox((l) => ({ ...l, vIndex: null }))}
+        onFocusVariation={(i) => setLightbox((l) => ({ ...l, vIndex: i }))}
+        onPrevVariation={() => {
+          if (!lightboxResult || lightbox.vIndex === null) return;
+          const n = lightboxResult.variations.length;
+          setLightbox((l) => ({ ...l, vIndex: (l.vIndex! - 1 + n) % n }));
+        }}
+        onNextVariation={() => {
+          if (!lightboxResult || lightbox.vIndex === null) return;
+          const n = lightboxResult.variations.length;
+          setLightbox((l) => ({ ...l, vIndex: (l.vIndex! + 1) % n }));
+        }}
+        onEdit={() => {
+          if (lightbox.id) {
+            const id = lightbox.id;
+            closeLightbox();
+            setEditor({ open: true, id });
+          }
+        }}
+      />
+      <ResultEditor
+        open={editor.open}
+        resultId={editor.id}
+        onClose={() => setEditor({ open: false, id: null })}
+      />
     </div>
   );
 };
