@@ -32,7 +32,6 @@ export const ResultCard = ({
   onDelete,
   onToggleFavorite,
 }: Props) => {
-  const hasRatings = result.variations.some((v) => v.overall > 0);
   const stop = (cb: () => void) => (e: MouseEvent) => {
     e.stopPropagation();
     cb();
@@ -144,7 +143,7 @@ export const ResultCard = ({
               )}
             </>
           )}
-          {result.resultType === "grid" && result.variations.length > 0 && density !== "compact" && hasRatings && (
+          {result.resultType === "grid" && result.variations.length > 0 && density !== "compact" && (
             <VariationSparkline variations={result.variations} />
           )}
         </div>
